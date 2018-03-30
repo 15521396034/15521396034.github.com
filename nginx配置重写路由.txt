@@ -1,0 +1,27 @@
+注意事项：
+1、配置域名的话，需要80端口，成功后，只要访问域名即可访问的项目
+2、如果你使用了react-router的 browserHistory 模式或 vue-router的 history 模式，在nginx配置还需要重写路由：
+
+server {
+    listen 80;
+    server_name  spa.sosout.com;
+    root /mnt/html/spa;
+    index index.html;
+    location ~ ^/favicon\.ico$ {
+        root /mnt/html/spa;
+    }
+
+    location / {
+        try_files $uri $uri/ @fallback;
+        index index.html;
+        proxy_set_header   Host             $host;
+        proxy_set_header   X-Real-IP        $remote_addr;
+        proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto  $scheme;
+    }
+    location @fallback {
+        rewrite ^.*$ /index.html break;
+    }
+    access_log  /mnt/logs/nginx/access.log  main;
+}
+为什么要重写路由？因为我们的项目只有一个根入口，当输入类似/home的url时，如果找不到对应的页面，nginx会尝试加载index.html，这是通过react-router或vue-router就能正确的匹配我们输入的/home路由，从而显示正确的home页面，如果browserHistory模式或history模式的项目没有配置上述内容，会出现404的情况。
